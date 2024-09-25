@@ -3,8 +3,6 @@ const inquirer = require("inquirer");
 const chalk = require("chalk");
 // Módulos internos
 const fs = require("fs");
-const { debugPort } = require("process");
-const { parse } = require("path");
 
 operation();
 
@@ -71,8 +69,7 @@ function buildAccount() {
         console.log(
           chalk.bgRed.black("Essa conta já existe! Escolha outro nome!")
         );
-        buildAccount();
-        return;
+        buildAccount(accountName);
       }
 
       fs.writeFileSync(
@@ -136,16 +133,25 @@ function checkAccount(accountName) {
   return true;
 }
 
-function addAmount(accountName, amountString) {
+function getAccount(accountName) {
+  const accountJSON = fs.readFileSync(`accounts/${accountName}.json`, {
+    encoding: "utf8",
+    flag: "r",
+  });
+
+  return JSON.parse(accountJSON);
+}
+
+function addAmount(accountName, amount) {
   const accountData = getAccount(accountName);
-  let amount = parseFloat(amountString);
 
   if (!amount) {
     console.log(chalk.bgRed.black("Ocorreu um erro! Tente novamente!"));
     return deposit();
   }
 
-  accountData.balance += amount;
+  accountData.balance = parseFloat(amount) + parseFloat(accountData.balance);
+
   fs.writeFileSync(
     `accounts/${accountName}.json`,
     JSON.stringify(accountData),
@@ -157,15 +163,6 @@ function addAmount(accountName, amountString) {
   console.log(
     chalk.green(`Foi deposito o valor de R$${amount} reais na sua conta!`)
   );
-}
-
-function getAccount(accountName) {
-  const accountJSON = fs.readFileSync(`accounts/${accountName}.json`, {
-    encoding: "utf8",
-    flag: "r",
-  });
-
-  return JSON.parse(accountJSON);
 }
 
 function getAccountBalance() {
@@ -184,6 +181,7 @@ function getAccountBalance() {
       }
 
       const accountData = getAccount(accountName);
+
       console.log(
         chalk.bgBlue.black(`O saldo da sua conta é de R$${accountData.balance}`)
       );
@@ -218,7 +216,9 @@ function withdraw() {
         ])
         .then((answer) => {
           const amount = answer["amount"];
+
           removeAmount(accountName, amount);
+          operation();
         })
         .catch((err) => {
           console.log(err);
@@ -256,5 +256,4 @@ function removeAmount(accountName, amount) {
   console.log(
     chalk.green(`Foi realiado um saque de R$${amount} reais na sua conta.`)
   );
-  operation();
 }
